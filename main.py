@@ -8,9 +8,11 @@ filesName = os.listdir(myPath)
 print(len(filesName))
 print("\n")
 cont=0
+#try:
 for file in filesName:
     cont+=1
     if file != ".DS_Store":
+    #if file == "PMC4791908.xml":
         json_data = {}
         json_content = {}
         json_name = file.split('.')[0]
@@ -20,7 +22,7 @@ for file in filesName:
         print(cont)
         myClass = FindElement(file)
         #PMCID
-        pmcid=myClass.getPmcid()
+        pmcid = myClass.getPmcid()
         if pmcid is not None:
             json_data['PMCID'] = pmcid.text
         else:
@@ -49,47 +51,59 @@ for file in filesName:
             json_table = {}
             #table ID
             tableID = myClass.getTableID(table)
-            json_table['TABLE ID'] = tableID
+            if tableID is not None:
+                json_table['TABLE ID'] = tableID
 
-            #body
-            tableHead = myClass.getTableHead(tableID)
-            tableBody = myClass.getTableBody(tableID)
-            if tableHead is not None:
-                json_table['BODY'] = ET.tostring(tableHead,encoding='unicode')
-            else:
-                json_table['BODY'] = ''
-            if tableBody is not None:
-                json_table['BODY'] = json_table.get('BODY')+ET.tostring(tableBody,encoding='unicode')
-            else:
-                json_table['BODY'] = json_table.get('BODY')
+                #body
+                tableHead = myClass.getTableHead(tableID)
+                tableBody = myClass.getTableBody(tableID)
+                if tableHead is not None:
+                    json_table['BODY'] = ET.tostring(tableHead,encoding='unicode')
+                else:
+                    json_table['BODY'] = ''
+                if tableBody is not None:
+                    json_table['BODY'] = json_table.get('BODY')+ET.tostring(tableBody,encoding='unicode')
+                else:
+                    json_table['BODY'] = json_table.get('BODY')
 
-            #caption
-            caption = myClass.getTableCaption(tableID)
-            if caption is not None:
-                json_table['CAPTION'] = caption.text
-            else:
-                json_table['CAPTION'] = ''
-            
-            #caption_citation
-            json_table['CAPTION CITATIONS'] = []
-            #foot
-            feet_list = myClass.getTablesFoot(tableID)
-            json_table['FOOTS'] = feet_list
-
-            #paragraph text
-            text = myClass.getParagraphText(tableID)
-            paragraphs_list = []
-            for p in text:
-                #paragraph citations
-                citations_list = myClass.getParagraphCitations(p)
-                paragraphs_list.append({"text":ET.tostring(p,encoding='utf-8').decode('utf-8'),"citations":citations_list})
-            json_table['PARAGRAPHS'] = paragraphs_list
+                #caption
+                caption = myClass.getTableCaption(tableID)
+                if caption is not None:
+                    json_table['CAPTION'] = ET.tostring(caption,encoding='unicode',method='text')
+                else:
+                    json_table['CAPTION'] = ''
                 
-            #cells
-            json_table['CELLS']=[]
+                #caption_citation
+                caption_citations = myClass.getCaptionCitations(caption)
+                json_table['CAPTION CITATIONS'] = caption_citations
 
-            tables_list.append(json_table)
-        json_content['TABLES'] = tables_list
+                #foot
+                feet_list = myClass.getTablesFoot(tableID)
+                json_table['FOOTS'] = feet_list
+
+                #paragraph text
+                text = myClass.getParagraphText(tableID)
+                paragraphs_list = []
+                for p in text:
+                    #paragraph citations
+                    citations_list = myClass.getParagraphCitations(p)
+                    paragraphs_list.append({"text":ET.tostring(p,encoding='utf-8').decode('utf-8'),"citations":citations_list})
+                json_table['PARAGRAPHS'] = paragraphs_list
+                    
+                #cells
+                content_cells = myClass.getCells(tableID)
+                cells_list = []
+                for cell in content_cells:
+                    #cited_in 
+                    cited_in_list = myClass.getCitedIn(cell)
+                    cells_list.append({"content":cell,"cited_in":cited_in_list})
+                json_table['CELLS'] = cells_list
+
+                tables_list.append(json_table)
+            else:
+                json_table['TABLE ID'] = ''
+                #raise Exception
+            json_content['TABLES'] = tables_list
 
         #figure
         figures_list = []
@@ -97,27 +111,40 @@ for file in filesName:
             json_figure = {}
             #fig ID
             figID = myClass.getFigureID(fig)
-            json_figure['FIG_ID'] = figID
-            #source
-            #print(root.find(".//fig[@id='"+fig.attrib.get("id")+"']//graphic/*"))
-            #print(root.find('.//graphic').attrib.get('xlink:href', None))
-            source = None
-            if source is not None:
-                json_figure['SRC'] = 'da fare'
+            if figID is not None:
+                json_figure['FIG_ID'] = figID
+                #source
+                url = myClass.getSource(figID, json_name)
+                json_figure['SRC'] = url
+                #caption
+                figCaption = myClass.getFigureCaption(figID)
+                if figCaption is not None:
+                    json_figure['CAPTION'] = ET.tostring(figCaption,encoding='unicode')
+                else:
+                    json_figure['CAPTION'] = ''
+                #caption_citation
+                caption_citations = myClass.getCaptionCitations(figCaption)
+                json_figure['CAPTION CITATIONS'] = caption_citations
+                
+                json_figure['PARAGRAPHS'] = []
+                figures_list.append(json_figure)
+
+                #paragraph cited_in
+                cited_in_list = myClass.getParagraphCitedIn(figID)
+                paragraphs_fig_list = []
+                for c in cited_in_list:
+                    #paragraph citations
+                    citations_list = myClass.getParagraphCitations(c)
+                    paragraphs_fig_list.append({"cited_in":ET.tostring(c,encoding='utf-8').decode('utf-8'),"citations":citations_list})
+                json_table['PARAGRAPHS'] = paragraphs_fig_list
             else:
-                json_figure['SRC'] = ''
-            #caption
-            figCaption = myClass.getFigureCaption(figID)
-            if figCaption is not None:
-                json_figure['CAPTION'] = ET.tostring(figCaption,encoding='unicode')
-            else:
-                json_figure['CAPTION'] = ''
-            
-            json_figure['PARAGRAPHS'] = []
-            figures_list.append(json_figure)
-        
+                json_figure['FIG_ID'] = ''
+                #raise Exception
+
         json_content['FIGURES'] = figures_list
 
         json_data['CONTENT'] = json_content
         print("\n")
         json.dump(json_data,outfile,indent=4)
+# except Exception as e:
+#     print(f"Errore: {e}")

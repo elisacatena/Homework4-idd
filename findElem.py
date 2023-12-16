@@ -1,6 +1,6 @@
-import os
 import xml.etree.ElementTree as ET
 from lxml import etree 
+import elementpath
 
 class FindElement:
 
@@ -8,12 +8,16 @@ class FindElement:
         myPath = "/Users/elisacatena/Desktop/Ingegneria dei dati/Homework/hw 4/file hw4/"
         data = open(myPath+file).read()
         root = etree.fromstring(data)
+        for element in root:
+            for comment in element.xpath('.//comment()'):
+                comment.getparent().remove(comment)
         self.root=root
 
     def getPmcid(self):
         print("PMCID: ")
         pmcid = self.root.find(".//article-id[@pub-id-type='pmc']")
-        print(pmcid.text)
+        if pmcid is not None:
+            print(pmcid.text)
         return pmcid
     
     def getTitle(self):
@@ -47,14 +51,25 @@ class FindElement:
     
     def getTableID(self,table):
         tableID = table.attrib.get("id")
-        print("TABLE ID: "+tableID)
+        if tableID is not None:
+            print("TABLE ID: "+tableID)
         return tableID
     
     def getTableCaption(self,tableID):
-        caption = self.root.find(".//table-wrap[@id='"+tableID+"']//caption//*")
+        caption = self.root.find(".//table-wrap[@id='"+tableID+"']//caption/*")
         if caption is not None:
-            print("CAPTION: "+caption.text)
+            print("CAPTION: "+ET.tostring(caption,encoding='unicode',method='text'))
         return caption
+    
+    def getCaptionCitations(self,caption):
+        allCit = caption.findall(".//xref[@ref-type='bibr']")
+        caption_citations = []
+        for cit in allCit:
+            citID = cit.attrib.get("rid")
+            caption_citations.append(citID)
+            print("CAPTION CITATIONS: "+str(caption_citations))
+        return caption_citations
+
     
     def getTablesFoot(self,tableID):
         feet_list = []
@@ -68,7 +83,7 @@ class FindElement:
     def getTableHead(self, tableID):
         tableHead = self.root.find(".//table-wrap[@id='"+tableID+"']//table//thead")
         if tableHead is not None:
-            print("TABLE HEAD: "+ET.tostring(tableHead,encoding='unicode'))
+            print("BODY: "+ET.tostring(tableHead,encoding='unicode'))
         return tableHead
     
     def getTableBody(self, tableID):
@@ -79,13 +94,12 @@ class FindElement:
     
     def getParagraphText(self, tableID):
         text = self.root.xpath(".//xref[@ref-type='table' and @rid='"+tableID+"']/..")
-        for element in text:
-            for comment in element.xpath('.//comment()'):
-                comment.getparent().remove(comment)
+        #for element in text:
+            # for comment in element.xpath('.//comment()'):
+            #     comment.getparent().remove(comment)
         print("TEXT: ")
         for i in range(0,len(text)):
             print(ET.tostring(text[i],encoding='utf-8').decode('utf-8'))
-            print("LEN TEXT: ", len(text))
         return text
     
     def getParagraphCitations(self, p):
@@ -95,12 +109,38 @@ class FindElement:
             citID = cit.attrib.get("rid")
             citation = self.root.find(".//ref[@id='"+citID+"']")
             if citation is not None:
+                # for comment in citation.xpath('.//comment()'):
+                #     comment.getparent().remove(comment)
                 cit_list.append(ET.tostring(citation,encoding='utf-8').decode('utf-8'))
-                print("CITATIONS: "+ET.tostring(citation,encoding='utf-8').decode('utf-8'))
+                print("PARAGRAPH CITATIONS: "+ET.tostring(citation,encoding='utf-8').decode('utf-8'))
         return cit_list
     
-
-
+    def getCells(self, tableID):
+        content_cells = self.root.xpath(".//table-wrap[@id='"+tableID+"']//td/text()")
+        return content_cells
+    
+    def getCitedIn(self, cell):
+        print("CONTENT: ", cell)
+        part1, part2, part3 = '', '', ''
+        if "'" in cell:
+            if '"' in cell:
+                h = cell.split("'")
+                text = h[0]
+                for i in range(len(h)):
+                    if(i>0):
+                        text = text+"\'"+h[i]
+            part1 = ".//p[contains(lower-case(.), '"
+            part3 = "')]"
+        else:
+            part1 = './/p[contains(lower-case(.), "'
+            part3 = '")]'
+        print(part1+part2.lower()+part3)
+        cited_in_list = elementpath.select(self.root,(part1+part2.lower()+part3))
+        out_list = []
+        for cit in cited_in_list:
+            print("CITED_IN: " + ET.tostring(cit,encoding='utf-8').decode('utf-8'))
+            out_list.append(ET.tostring(cit,encoding='utf-8').decode('utf-8'))
+        return out_list
 
     def getFigures(self):
         fig_list = self.root.findall(".//fig")
@@ -116,6 +156,35 @@ class FindElement:
         if figCaption is not None:
             print("CAPTION: "+ET.tostring(figCaption,encoding='unicode'))
         return figCaption
+    
+    def getParagraphCitedIn(self, figID):
+        cited_in_list = self.root.xpath(".//xref[@ref-type='fig' and @rid='"+figID+"']/..")
+        #for element in text:
+            # for comment in element.xpath('.//comment()'):
+            #     comment.getparent().remove(comment)
+        print("CITED_IN: ")
+        for i in range(0,len(cited_in_list)):
+            print(ET.tostring(cited_in_list[i],encoding='utf-8').decode('utf-8'))
+        return cited_in_list
+    
+    def getSource(self,figID,fileName):
+        graphic = self.root.find(".//fig[@id='"+figID+"']//graphic")
+        url = ''
+        src = ''
+        if graphic is not None:
+            for k in graphic.attrib:
+                if "href" in k:
+                    src = graphic.attrib.get(k)
+            url = "https://www.ncbi.nlm.nih.gov/pmc/articles/"+fileName+"/bin/"+src+".jpg"
+            print("SRC: " + url)
+        return url
+
+
+
+
+
+
+
 
 
 
