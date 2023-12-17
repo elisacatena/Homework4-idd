@@ -14,27 +14,27 @@ class FindElement:
         self.root=root
 
     def getPmcid(self):
-        print("PMCID: ")
+        #print("PMCID: ")
         pmcid = self.root.find(".//article-id[@pub-id-type='pmc']")
-        if pmcid is not None:
-            print(pmcid.text)
+        #if pmcid is not None:
+            #print(pmcid.text)
         return pmcid
     
     def getTitle(self):
-        print("TITLE: ")
+        #print("TITLE: ")
         title = (self.root.xpath(".//title-group/article-title//text()"))
         title_text = ""
         for i in range(0,len(title)):
             title_text = title_text + title[i]
-        print(title_text)
+        #print(title_text)
         return title_text
     
     def getAbstract(self):
         abstract = self.root.find(".//abstract//p")
-        if abstract is not None:
-            print("ABSTRACT: "+ET.tostring(abstract,encoding='unicode'))
-        else:
-            print('')
+        # if abstract is not None:
+        #     print("ABSTRACT: "+ET.tostring(abstract,encoding='unicode'))
+        # else:
+        #     print('')
         return abstract
     
     def getKeywords(self):
@@ -43,7 +43,7 @@ class FindElement:
         for kwd_element in kwd_elements:
             content = etree.tostring(kwd_element, method="text", encoding=str)
             kwd_list.append(content)
-            print("KEYWORDS: " + content)
+            #print("KEYWORDS: " + content)
         return kwd_list
     
     def getTables(self):
@@ -51,23 +51,24 @@ class FindElement:
     
     def getTableID(self,table):
         tableID = table.attrib.get("id")
-        if tableID is not None:
-            print("TABLE ID: "+tableID)
+        #if tableID is not None:
+            #print("TABLE ID: "+tableID)
         return tableID
     
     def getTableCaption(self,tableID):
         caption = self.root.find(".//table-wrap[@id='"+tableID+"']//caption/*")
-        if caption is not None:
-            print("CAPTION: "+ET.tostring(caption,encoding='unicode',method='text'))
+        #if caption is not None:
+            #print("CAPTION: "+ET.tostring(caption,encoding='unicode',method='text'))
         return caption
     
     def getCaptionCitations(self,caption):
-        allCit = caption.findall(".//xref[@ref-type='bibr']")
         caption_citations = []
-        for cit in allCit:
-            citID = cit.attrib.get("rid")
-            caption_citations.append(citID)
-            print("CAPTION CITATIONS: "+str(caption_citations))
+        if caption is not None:
+            allCit = caption.findall(".//xref[@ref-type='bibr']")
+            for cit in allCit:
+                citID = cit.attrib.get("rid")
+                caption_citations.append(citID)
+                #print("CAPTION CITATIONS: "+str(caption_citations))
         return caption_citations
 
     
@@ -76,20 +77,20 @@ class FindElement:
         feet = self.root.findall(".//table-wrap[@id='"+tableID+"']//table-wrap-foot//p")
         for foot in feet:
             feet_list.append(ET.tostring(foot,encoding='unicode'))
-            print("FOOT: "+ET.tostring(foot,encoding='unicode'))
+            #print("FOOT: "+ET.tostring(foot,encoding='unicode'))
         return feet_list
     
 
     def getTableHead(self, tableID):
         tableHead = self.root.find(".//table-wrap[@id='"+tableID+"']//table//thead")
-        if tableHead is not None:
-            print("BODY: "+ET.tostring(tableHead,encoding='unicode'))
+        #if tableHead is not None:
+            #print("BODY: "+ET.tostring(tableHead,encoding='unicode'))
         return tableHead
     
     def getTableBody(self, tableID):
         tableBody = self.root.find(".//table-wrap[@id='"+tableID+"']//table//tbody")
-        if tableBody is not None:
-            print("TABLE HEAD: "+ET.tostring(tableBody,encoding='unicode'))
+        #if tableBody is not None:
+            #print("TABLE HEAD: "+ET.tostring(tableBody,encoding='unicode'))
         return tableBody
     
     def getParagraphText(self, tableID):
@@ -97,9 +98,9 @@ class FindElement:
         #for element in text:
             # for comment in element.xpath('.//comment()'):
             #     comment.getparent().remove(comment)
-        print("TEXT: ")
-        for i in range(0,len(text)):
-            print(ET.tostring(text[i],encoding='utf-8').decode('utf-8'))
+        #print("TEXT: ")
+        #for i in range(0,len(text)):
+            #print(ET.tostring(text[i],encoding='utf-8').decode('utf-8'))
         return text
     
     def getParagraphCitations(self, p):
@@ -112,7 +113,7 @@ class FindElement:
                 # for comment in citation.xpath('.//comment()'):
                 #     comment.getparent().remove(comment)
                 cit_list.append(ET.tostring(citation,encoding='utf-8').decode('utf-8'))
-                print("PARAGRAPH CITATIONS: "+ET.tostring(citation,encoding='utf-8').decode('utf-8'))
+                #print("PARAGRAPH CITATIONS: "+ET.tostring(citation,encoding='utf-8').decode('utf-8'))
         return cit_list
     
     def getCells(self, tableID):
@@ -120,8 +121,9 @@ class FindElement:
         return content_cells
     
     def getCitedIn(self, cell):
-        print("CONTENT: ", cell)
-        part1, part2, part3 = '', '', ''
+        #print("CONTENT: ", cell)
+        part1, part3 = '', ''
+        part2 = cell.lower()
         if "'" in cell:
             if '"' in cell:
                 h = cell.split("'")
@@ -129,16 +131,20 @@ class FindElement:
                 for i in range(len(h)):
                     if(i>0):
                         text = text+"\'"+h[i]
-            part1 = ".//p[contains(lower-case(.), '"
-            part3 = "')]"
-        else:
+                part2 = text.lower()
+                part1 = ".//p[contains(lower-case(.), '"
+                part3 = "')]"
             part1 = './/p[contains(lower-case(.), "'
             part3 = '")]'
-        print(part1+part2.lower()+part3)
-        cited_in_list = elementpath.select(self.root,(part1+part2.lower()+part3))
+        else:
+            part1 = ".//p[contains(lower-case(.), '"
+            part3 = "')]"
+        # print("cell: "+cell)
+        # print(part1+part2+part3)
+        cited_in_list = elementpath.select(self.root,(part1+part2+part3))
         out_list = []
         for cit in cited_in_list:
-            print("CITED_IN: " + ET.tostring(cit,encoding='utf-8').decode('utf-8'))
+            #print("CITED_IN: " + ET.tostring(cit,encoding='utf-8').decode('utf-8'))
             out_list.append(ET.tostring(cit,encoding='utf-8').decode('utf-8'))
         return out_list
 
@@ -148,13 +154,13 @@ class FindElement:
     
     def getFigureID(self, fig):
         figID = fig.attrib.get("id")
-        print("FIGURE ID: "+figID)
+        #print("FIGURE ID: "+figID)
         return figID
     
     def getFigureCaption(self,figID):
         figCaption = self.root.find(".//fig[@id='"+figID+"']//caption//*")
-        if figCaption is not None:
-            print("CAPTION: "+ET.tostring(figCaption,encoding='unicode'))
+        #if figCaption is not None:
+            #print("CAPTION: "+ET.tostring(figCaption,encoding='unicode'))
         return figCaption
     
     def getParagraphCitedIn(self, figID):
@@ -162,9 +168,9 @@ class FindElement:
         #for element in text:
             # for comment in element.xpath('.//comment()'):
             #     comment.getparent().remove(comment)
-        print("CITED_IN: ")
-        for i in range(0,len(cited_in_list)):
-            print(ET.tostring(cited_in_list[i],encoding='utf-8').decode('utf-8'))
+        #print("CITED_IN: ")
+        #for i in range(0,len(cited_in_list)):
+            #print(ET.tostring(cited_in_list[i],encoding='utf-8').decode('utf-8'))
         return cited_in_list
     
     def getSource(self,figID,fileName):
@@ -176,8 +182,14 @@ class FindElement:
                 if "href" in k:
                     src = graphic.attrib.get(k)
             url = "https://www.ncbi.nlm.nih.gov/pmc/articles/"+fileName+"/bin/"+src+".jpg"
-            print("SRC: " + url)
+            #print("SRC: " + url)
         return url
+    
+    def get_second_element_by_content(self, value, cells_list):
+        for element in cells_list:
+            if element.get("content") == value:
+                return element.get("cited_in")
+        return None
 
 
 

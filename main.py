@@ -11,15 +11,14 @@ cont=0
 #try:
 for file in filesName:
     cont+=1
-    if file != ".DS_Store":
+    if cont >= 22 and file != ".DS_Store":
     #if file == "PMC4791908.xml":
         json_data = {}
         json_content = {}
         json_name = file.split('.')[0]
         outfile = open("/Users/elisacatena/Desktop/json file hw4/"+json_name+".json", "w")
         print(file)
-        print("CONT:")
-        print(cont)
+        print("CONT:"+str(cont))
         myClass = FindElement(file)
         #PMCID
         pmcid = myClass.getPmcid()
@@ -76,6 +75,7 @@ for file in filesName:
                 #caption_citation
                 caption_citations = myClass.getCaptionCitations(caption)
                 json_table['CAPTION CITATIONS'] = caption_citations
+    
 
                 #foot
                 feet_list = myClass.getTablesFoot(tableID)
@@ -93,12 +93,16 @@ for file in filesName:
                 #cells
                 content_cells = myClass.getCells(tableID)
                 cells_list = []
+                visited_cells = []
                 for cell in content_cells:
-                    #cited_in 
-                    cited_in_list = myClass.getCitedIn(cell)
+                    if cell not in visited_cells:
+                        visited_cells.append(cell)
+                        #cited_in 
+                        cited_in_list = myClass.getCitedIn(cell)
+                    else:
+                        cited_in_list = myClass.get_second_element_by_content(cell, cells_list)
                     cells_list.append({"content":cell,"cited_in":cited_in_list})
                 json_table['CELLS'] = cells_list
-
                 tables_list.append(json_table)
             else:
                 json_table['TABLE ID'] = ''
@@ -144,7 +148,6 @@ for file in filesName:
         json_content['FIGURES'] = figures_list
 
         json_data['CONTENT'] = json_content
-        print("\n")
         json.dump(json_data,outfile,indent=4)
 # except Exception as e:
 #     print(f"Errore: {e}")
