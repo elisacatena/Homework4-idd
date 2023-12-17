@@ -8,10 +8,11 @@ filesName = os.listdir(myPath)
 print(len(filesName))
 print("\n")
 cont=0
+black_list=["PMC4791908.xml","PMC5993998.xml","PMC3079697.xml","PMC4940961.xml","PMC2519083.xml","PMC2649030.xml", "PMC3605808.xml"]
 #try:
-for file in filesName:
+for file in filesName: 
     cont+=1
-    if cont >= 22 and file != ".DS_Store":
+    if cont >= 4391 and file != ".DS_Store" and file not in black_list:
     #if file == "PMC4791908.xml":
         json_data = {}
         json_content = {}
