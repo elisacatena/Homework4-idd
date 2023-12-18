@@ -3,7 +3,7 @@ import xml.etree.ElementTree as ET
 import json
 from findElem import FindElement
 
-myPath = "/Users/elisacatena/Desktop/Ingegneria dei dati/Homework/hw 4/file hw4/"
+myPath = "C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/docs/"
 filesName = os.listdir(myPath)
 print(len(filesName))
 print("\n")
@@ -12,12 +12,12 @@ black_list=["PMC4791908.xml","PMC5993998.xml","PMC3079697.xml","PMC4940961.xml",
 #try:
 for file in filesName: 
     cont+=1
-    if cont >= 4391 and file != ".DS_Store" and file not in black_list:
+    if file != ".DS_Store" and file not in black_list and cont > 163:
     #if file == "PMC4791908.xml":
         json_data = {}
         json_content = {}
         json_name = file.split('.')[0]
-        outfile = open("/Users/elisacatena/Desktop/json file hw4/"+json_name+".json", "w")
+        outfile = open("C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/jsons/"+json_name+".json", "w")
         print(file)
         print("CONT:"+str(cont))
         myClass = FindElement(file)
