@@ -1,25 +1,17 @@
 import os
-import xml.etree.ElementTree as ET
 import json
+import xml.etree.ElementTree as ET
+import concurrent.futures
 from findElem import FindElement
 
-myPath = "C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/docs/"
-filesName = os.listdir(myPath)
-print(len(filesName))
-print("\n")
-cont=0
-black_list=["PMC4791908.xml","PMC5993998.xml","PMC3079697.xml","PMC4940961.xml","PMC2519083.xml","PMC2649030.xml", "PMC3605808.xml"]
-#try:
-for file in filesName: 
-    cont+=1
-    if file != ".DS_Store" and file not in black_list and cont > 163:
-    #if file == "PMC4791908.xml":
-        json_data = {}
-        json_content = {}
-        json_name = file.split('.')[0]
-        outfile = open("C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/jsons/"+json_name+".json", "w")
+def process_file(file):
+    json_data = {}
+    json_content = {}
+    json_name = file.split('.')[0]
+    outfile_path = "C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/jsons/" + json_name + ".json"
+    
+    with open(outfile_path, "w") as outfile:
         print(file)
-        print("CONT:"+str(cont))
         myClass = FindElement(file)
         #PMCID
         pmcid = myClass.getPmcid()
@@ -149,6 +141,25 @@ for file in filesName:
         json_content['FIGURES'] = figures_list
 
         json_data['CONTENT'] = json_content
-        json.dump(json_data,outfile,indent=4)
-# except Exception as e:
-#     print(f"Errore: {e}")
+        json.dump(json_data, outfile, indent=4)
+
+def main():
+    myPath = "C:/Users/MariaDeDomenico/OneDrive - Lobra S.r.l/Desktop/file hw4/docs/"
+    filesName = os.listdir(myPath)
+    print(len(filesName))
+    print("\n")
+    cont = 0
+
+    
+    with concurrent.futures.ThreadPoolExecutor() as executor:  # Puoi cambiare in ProcessPoolExecutor() per usare processi
+        futures = []
+        for file in filesName:
+            cont += 1
+
+            if cont >= 0 and file != ".DS_Store":
+                futures.append(executor.submit(process_file, file))
+
+        concurrent.futures.wait(futures)  # Attendere il completamento di tutti i task
+
+if __name__ == "__main__":
+    main()
