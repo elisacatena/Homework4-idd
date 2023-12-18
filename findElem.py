@@ -1,6 +1,7 @@
 import xml.etree.ElementTree as ET
 from lxml import etree 
 import elementpath
+import re
 
 class FindElement:
 
@@ -120,32 +121,37 @@ class FindElement:
         content_cells = self.root.xpath(".//table-wrap[@id='"+tableID+"']//td/text()")
         return content_cells
     
+    def escape_cell(self, cell) :
+        text = re.split(r'(")', cell)
+        text = list(filter(None, text))
+        escaped_text = 'concat('
+        for elem in text:
+            if elem == '"':
+                escaped_text = escaped_text + "'" + elem + "',"
+            else:
+                escaped_text = escaped_text + '"' + elem + '",'
+
+        return escaped_text[0:len(escaped_text)-1]
+    
     def getCitedIn(self, cell):
-        #print("CONTENT: ", cell)
-        part1, part3 = '', ''
-        part2 = cell.lower()
-        if "'" in cell:
-            if '"' in cell:
-                h = cell.split("'")
-                text = h[0]
-                for i in range(len(h)):
-                    if(i>0):
-                        text = text+"\'"+h[i]
-                part2 = text.lower()
-                part1 = ".//p[contains(lower-case(.), '"
-                part3 = "')]"
-            part1 = './/p[contains(lower-case(.), "'
-            part3 = '")]'
+        # print("CONTENT: ", cell)
+        text = cell
+        if ('"' in cell and "'" in cell):
+            print("ENTRATO")
+            text = self.escape_cell(cell)
+            cited_in_list = elementpath.select(self.root,
+                (".//p[contains(lower-case(.), " + text.lower() + "))]"))
+        elif '"' in cell:
+            cited_in_list = elementpath.select(self.root,
+                (".//p[contains(lower-case(.), " + "'" + cell.lower() + "'" + ")]"))
         else:
-            part1 = ".//p[contains(lower-case(.), '"
-            part3 = "')]"
-        # print("cell: "+cell)
-        # print(part1+part2+part3)
-        cited_in_list = elementpath.select(self.root,(part1+part2+part3))
+            cited_in_list = elementpath.select(self.root,
+                ('.//p[contains(lower-case(.), "' + cell.lower() + '")]'))
+
         out_list = []
         for cit in cited_in_list:
-            #print("CITED_IN: " + ET.tostring(cit,encoding='utf-8').decode('utf-8'))
-            out_list.append(ET.tostring(cit,encoding='utf-8').decode('utf-8'))
+            # print("CITED_IN: " + ET.tostring(cit, encoding='utf-8').decode('utf-8'))
+            out_list.append(ET.tostring(cit, encoding='utf-8').decode('utf-8'))
         return out_list
 
     def getFigures(self):
