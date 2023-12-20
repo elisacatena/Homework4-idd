@@ -5,9 +5,8 @@ import re
 
 class FindElement:
 
-    def __init__(self,file):
-        myPath = "/Users/elisacatena/Desktop/Ingegneria dei dati/Homework/hw 4/file hw4/"
-        data = open(myPath+file).read()
+    def __init__(self,file,path):
+        data = open(path+file).read()
         root = etree.fromstring(data)
         for element in root:
             for comment in element.xpath('.//comment()'):
@@ -31,7 +30,7 @@ class FindElement:
         return title_text
     
     def getAbstract(self):
-        abstract = self.root.find(".//abstract//p")
+        abstract = self.root.find(".//abstract//*/text()")
         # if abstract is not None:
         #     print("ABSTRACT: "+ET.tostring(abstract,encoding='unicode'))
         # else:
@@ -118,7 +117,7 @@ class FindElement:
         return cit_list
     
     def getCells(self, tableID):
-        content_cells = self.root.xpath(".//table-wrap[@id='"+tableID+"']//td/text()")
+        content_cells = self.root.xpath(".//table-wrap[@id='"+tableID+"']//td//text()")
         return content_cells
     
     def escape_cell(self, cell) :

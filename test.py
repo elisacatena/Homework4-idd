@@ -1,104 +1,111 @@
 import random
 import os
 import json
-from lxml import etree 
-import elementpath
+from lxml import etree
+from findElem import FindElement
+import unittest
 
 class FindElementTest:
-
-    def setUp(self,file):
-        self.myPath = "/Users/elisacatena/Desktop/Ingegneria dei dati/Homework/hw 4/file hw4/"
-        data = open(self.myPath+file).read()
-        root = etree.fromstring(data)
-        for element in root:
-            for comment in element.xpath('.//comment()'):
-                comment.getparent().remove(comment)
-        self.root=root
-
-
-    def getValueTest(self, value, tagName):
-        value_test = self.root.find(f'.//*[contains(., {value})]')
-        if value_test is not None:
-            return value_test.tag == tagName
-        
-    def getValueListTest(self, value_list, tagName):
-
-        for value in value_list:
-            value_test = self.root.find(f'.//*[contains(., {value})]')
-            if value_test is not None:
-                if value_test.tag != tagName:
-                    return False
-                
-        return True
     
-    def checkIfTagExists(self, value, tagName):
-        value_test = self.root.findall(f'.//*[contains(., {value})]')
-        for val in value_test:
-            if val.tag == tagName:
-                return True
-            
-        return False
+    def __init__(self):
+        self.xmlPath = "./testXML/"
+        self.jsonPath = "./testJSON/"
+        self.root = None
 
+    def checkEquals(self, extracted_value, expected_value):
+        if extracted_value == expected_value:
+            print(f"Il valore estratto ({extracted_value}) corrisponde al valore atteso ({expected_value})")
+        else: 
+            print(f"Il valore estratto ({extracted_value}) NON corrisponde al valore atteso ({expected_value})")
+    
+    def checkEqualsList(self, extracted_list, expected_list):
+        if(len(extracted_list) != len(expected_list)):
+            print(f"Il valore estratto ({extracted_list}) NON corrisponde al valore atteso ({expected_list})")
+        else:
+            for elem in extracted_list:
+                if elem not in expected_list:
+                    print(f"Il valore estratto ({extracted_list}) NON corrisponde al valore atteso ({expected_list})")
+            print(f"Il valore estratto ({extracted_list}) corrisponde al valore atteso ({expected_list})")
         
     def runTest(self):
 
-        filesName = os.listdir(self.myPath)
-        visited_files = []
-        cont_pmcid, cont_abstract, cont_kwd, cont_tableId, cont_caption, cont_figId, cont_captionFig, cont_src = 0, 0, 0, 0, 0, 0, 0, 0
+        xmlFiles = os.listdir(self.xmlPath)
+        cont = 0
 
-        for i in range(0, 300):
+        for file in xmlFiles:
+            cont += 1
+            print("File: " + file)
+            data = open(self.xmlPath + file).read()
+            root = etree.fromstring(data)
+            self.root=root
 
-            file_number = random.randint(0, len(filesName)-1)
-            while file_number in visited_files :
-                file_number = random.randint(0, len(filesName)-1)
+            myClass = FindElement(file, self.xmlPath)            
+
+            #PMCID
+            extracted_pmcid = myClass.getPmcid().text
+            expected_pmcid = "PMC" + str(cont)
+            self.checkEquals(extracted_pmcid, expected_pmcid)
             
-            visited_files.append(file_number)
-            self.setUp(filesName[file_number])
+            #title
+            extracted_title = myClass.getTitle()
+            expected_title = "title" + str(cont)
+            self.checkEquals(extracted_title, expected_title)
 
-            json_file = open(self.myPath+filesName[file_number]).read()
+            #abstract
+            extracted_abstract = myClass.getAbstract().text
+            expected_abstract = "abstract" + str(cont)
+            self.checkEquals(extracted_abstract, expected_abstract)
+                
+            #keywords
+            extracted_kwd_list = myClass.getKeywords()
+            expected_kwd_list = []
+            for i in range (0,cont-1):
+                expected_kwd_list.append("kwd" + i)
+            self.checkEqualsList(extracted_kwd_list, expected_kwd_list)
 
-            json_data = json.load(json_file)
+            #tables
+            contTab = 0
+            for table in myClass.getTables():
+                contTab += 1
+                #table ID
+                extracted_tableID = myClass.getTableID(table)
+                expected_tableID = "tab" + str(contTab)
+                self.checkEquals(extracted_tableID, expected_tableID)
 
-            pmcid_json = json_data.get('PMCID')
-            if self.getValueTest(pmcid_json, 'article-id'):
-                cont_pmcid += 1
+                #body
+                extracted_tableHead = myClass.getTableHead(extracted_tableID)
+                extracted_tableBody = myClass.getTableBody(extracted_tableID)
+                expected_tableHead = "<thead><tr><th>" + str(cont) + "</th><th>" + str(contTab) + "</th>"
+                expected_tableBody = "<tbody><tr><td><bold>" + str(cont) + "</bold></td><td>" + str(cont+1) + "</td><tr><td><bold>" + str(cont+2) + "</bold></td><td>" + str(cont+3) + "</td></tbody>"
+                self.checkEquals(extracted_tableHead, expected_tableHead)
+                self.checkEquals(extracted_tableBody, expected_tableBody)
 
-            content_json = json_data.get('CONTENT')
-            abstract_json = content_json.get('ABSTRACT')
-            if self.getValueTest(abstract_json, 'abstract'):
-                cont_abstract += 1
+                #caption
+                extracted_caption = myClass.getTableCaption(extracted_tableID).text
+                expected_caption = "caption" + str(contTab)
+                self.checkEquals(extracted_caption, expected_caption)
+                    
+                #cells
+                extracted_content_cells = myClass.getCells(extracted_tableID)
+                expected_content_cells = [cont,(cont+1),(cont+2),(cont+3)]
+                print(extracted_content_cells)
+                print(expected_content_cells)
+                self.checkEqualsList(extracted_content_cells, expected_content_cells)
+                    
+            #figure
+            contFig = 0
+            for fig in myClass.getFigures():
+                contFig += 1
+                #fig ID
+                extracted_figID = myClass.getFigureID(fig)
+                expected_figID = "fig" + str(contFig)
+                self.checkEquals(extracted_figID, expected_figID)
+                #source
+                extracted_url = myClass.getSource(extracted_figID, extracted_pmcid)
+                expected_url = "https://www.ncbi.nlm.nih.gov/pmc/articles/" + expected_pmcid + "/bin/"+ str(contFig) +".jpg"
+                self.checkEquals(extracted_url, expected_url)
 
-            kwd_json = content_json.get('KEYWORDS')
-            if self.getValueListTest(kwd_json, 'kwd'):
-                cont_kwd += 1
 
-            tableId_json = content_json.get('TABLES').get('TABLE ID')
-            if self.checkIfTagExists(tableId_json, 'table-wrap'):
-                cont_tableId += 1
-
-            caption_json = content_json.get('TABLES').get('CAPTION')
-            if self.getValueTest(caption_json, 'caption'):
-                cont_caption += 1
-
-            figId_json = content_json.get('FIGURES').get('FIG_ID')
-            if self.checkIfTagExists(figId_json, 'fig'):
-                cont_figId += 1
-            
-            captionFig_json = content_json.get('FIGURES').get('CAPTION')
-            if self.getValueTest(captionFig_json, 'caption'):
-                cont_captionFig += 1
-
-            src_json = content_json.get('FIGURES').get('SRC')
-            if self.getValueTest(src_json, 'graphic'):
-                cont_src += 1
-
-        with open(self.myPath+'stats.json', "w") as outfile:
-            outfile.write('File testati: ' + len(visited_files))
-            outfile.write('PMCID: ' + cont_pmcid)
-            outfile.write('ABSTRACT: ' + cont_abstract)
-            outfile.write('KWD: ' + cont_kwd)
-            outfile.write('TABLE ID: ' + cont_tableId)
-            outfile.write('CAPTION: ' + cont_caption)
-            outfile.write('FIG ID: ' + cont_figId)
-            outfile.write('CAPTION FIG: ' + cont_captionFig)
-            outfile.write('SRC: ' + cont_src)
+if __name__ == "__main__":
+    testClass = FindElementTest()
+    testClass.runTest()

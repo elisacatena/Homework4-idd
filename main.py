@@ -3,16 +3,18 @@ import json
 import xml.etree.ElementTree as ET
 import concurrent.futures
 from findElem import FindElement
+from test import FindElementTest
 
 def process_file(file):
     json_data = {}
     json_content = {}
     json_name = file.split('.')[0]
-    outfile_path = "/Users/elisacatena/Desktop/jsonprova/" + json_name + ".json"
-    
+    outfile_path = "/Users/elisacatena/Desktop/meryJSON/" + json_name + ".json"
+    xmlPath = "/Users/elisacatena/Desktop/merytutti/"
+
     with open(outfile_path, "w") as outfile:
         print(file)
-        myClass = FindElement(file)
+        myClass = FindElement(file, xmlPath)
         #PMCID
         pmcid = myClass.getPmcid()
         if pmcid is not None:
@@ -20,18 +22,15 @@ def process_file(file):
         else:
             json_data['PMCID'] = ''
 
-        
         #title
         title_text = myClass.getTitle()
         json_content['TITLE'] = title_text
-        
 
         #abstract
         abstract = myClass.getAbstract()
-        if abstract is not None:
-            json_content['ABSTRACT'] = abstract.text
-        else:
-            json_content['ABSTRACT'] = ''
+        json_content['ABSTRACT'] = ''
+        for abs in abstract:
+            json_content['ABSTRACT'] = json_content.get['ABSTRACT'] + abs
             
         #keywords
         kwd_list = myClass.getKeywords()
@@ -69,7 +68,6 @@ def process_file(file):
                 caption_citations = myClass.getCaptionCitations(caption)
                 json_table['CAPTION CITATIONS'] = caption_citations
     
-
                 #foot
                 feet_list = myClass.getTablesFoot(tableID)
                 json_table['FOOTS'] = feet_list
@@ -144,20 +142,18 @@ def process_file(file):
         json.dump(json_data, outfile, indent=4)
 
 def main():
-    myPath = "/Users/elisacatena/Desktop/Ingegneria dei dati/Homework/hw 4/file hw4/"
-    filesName = os.listdir(myPath)
+    xmlPath = "/Users/elisacatena/Desktop/merytutti/"
+    filesName = os.listdir(xmlPath)
     print(len(filesName))
     print("\n")
     cont = 0
-    black_list = ["PMC4791908.xml", "PMC5993998.xml", "PMC3079697.xml", "PMC4940961.xml", "PMC2519083.xml",
-                  "PMC2649030.xml", "PMC3605808.xml", "PMC2873467.xml"]
     
     with concurrent.futures.ThreadPoolExecutor() as executor:  # Puoi cambiare in ProcessPoolExecutor() per usare processi
         futures = []
         for file in filesName:
             cont += 1
-            if cont >= 0 and file != ".DS_Store" and file not in black_list:
-                futures.append(executor.submit(process_file, file))
+            print("**CONT** " + str(cont))
+            futures.append(executor.submit(process_file, file))
 
         concurrent.futures.wait(futures)  # Attendere il completamento di tutti i task
 
